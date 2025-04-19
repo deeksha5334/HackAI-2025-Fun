@@ -1,0 +1,11 @@
+[
+  {
+    "chunk_id": "hf_0",
+    "content": "Placeholder data.",
+    "source": "huggingface_breast_cancer_qa",
+    "metadata": {
+      "source_type": "huggingface_dataset",
+      "index": 0
+    }
+  }
+]
