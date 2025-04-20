@@ -28,13 +28,15 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
           {/* User Profile */}
           <div className="bg-white rounded-xl p-6 shadow-sm">
-            <h2 className="text-xl font-semibold text-pink-600 mb-6">User Profile</h2>
+            <h2 className="text-xl font-semibold text-pink-600 mb-6">Welcome Back, Natasha</h2>
 
             <div className="flex flex-col items-center mb-6">
               <div className="w-24 h-24 rounded-full bg-pink-50 flex items-center justify-center text-3xl font-light text-pink-400 mb-4">
-                UN
+                <img 
+                    src="/Users/riyan/Desktop/AIMFinalProject/HackAI-2025-Fun/final-deployed-my-app/public/Rectangle.png" 
+                  />
               </div>
-              <div className="px-4 py-1 border border-pink-200 rounded-full text-pink-600">UserName</div>
+              <div className="px-4 py-1 border border-pink-200 rounded-full text-pink-600">Natasha Angel</div>
             </div>
 
             <div className="bg-pink-50 rounded-lg p-4 mb-4">
@@ -208,7 +210,7 @@ export default function DashboardPage() {
             <div className="space-y-4">
               <div className="border-l-4 border-pink-500 pl-4 py-1">
                 <div className="flex justify-between mb-1">
-                  <div className="font-medium text-pink-600">Dr. Kartik Aryan</div>
+                  <div className="font-medium text-pink-600">Dr. Nigesh Aryan</div>
                   <div className="text-xs text-gray-500">Yesterday</div>
                 </div>
                 <p className="text-sm text-gray-700">

@@ -54,9 +54,15 @@ export default function HomePage() {
                 transition={{ duration: 0.7 }}
                 className="relative z-10"
               >
-                <div className="relative">
+                <div className="relative rounded-2xl shadow-xl mx-auto overflow-hidden" style={{
+                        background: 'linear-gradient(rgba(252, 231, 243, 0.8), rgba(252, 231, 243, 0.8)), url(/your-image-name.jpg)',
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center',
+                        width: '500px',
+                        height: '600px'
+                      }}>
                   <img
-                    src="/placeholder.svg?height=600&width=500"
+                    src="/mainpicture.jpg"
                     alt="Woman smiling"
                     className="rounded-2xl shadow-xl mx-auto"
                   />
