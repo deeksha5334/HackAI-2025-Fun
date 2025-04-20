@@ -100,19 +100,85 @@ def scrape_breastcancernow_website():
     except Exception as e:
         logger.error(f"Error scraping Breast Cancer Now website: {str(e)}")
         return False
+# Add this function to src/data_processing/extraction.py
 
-def extract_all_data():
-    """Run all extraction functions."""
+def scrape_additional_urls(urls, output_prefix="custom"):
+    """Scrape content from additional URLs and add to knowledge base.
+    
+    Args:
+        urls: List of URLs to scrape
+        output_prefix: Prefix for output filenames
+    
+    Returns:
+        List of successful URLs
+    """
+    successful_urls = []
+    
+    for i, url in enumerate(urls):
+        try:
+            logger.info(f"Scraping content from {url}")
+            response = requests.get(url)
+            response.raise_for_status()
+            
+            soup = BeautifulSoup(response.content, "html.parser")
+            
+            # Extract main content (adjust selectors based on website structure)
+            main_content = soup.find("main") or soup.find("article") or soup.find("div", class_="content")
+            
+            if not main_content:
+                logger.warning(f"Could not find main content on {url}. Saving full HTML.")
+                main_content = soup
+            
+            # Generate a filename from the URL
+            filename = f"{output_prefix}_{i}"
+            
+            # Save raw HTML
+            with open(f"data/raw/{filename}.html", "w", encoding="utf-8") as f:
+                f.write(str(main_content))
+            
+            # Extract text and save
+            text_content = main_content.get_text(separator="\n", strip=True)
+            with open(f"data/raw/{filename}.txt", "w", encoding="utf-8") as f:
+                f.write(text_content)
+            
+            successful_urls.append(url)
+            logger.info(f"Successfully scraped and saved content from {url}")
+        except Exception as e:
+            logger.error(f"Error scraping {url}: {str(e)}")
+    
+    return successful_urls
+
+# Replace the extract_all_data function in src/data_processing/extraction.py
+
+def extract_all_data(additional_urls=None):
+    """Run all extraction functions.
+    
+    Args:
+        additional_urls: Optional list of additional URLs to scrape
+        
+    Returns:
+        Boolean indicating success
+    """
     create_directories()
     huggingface_success = download_huggingface_dataset()
     website_success = scrape_breastcancernow_website()
     
-    if huggingface_success and website_success:
+    additional_success = True
+    if additional_urls:
+        logger.info(f"Scraping {len(additional_urls)} additional URLs")
+        successful_urls = scrape_additional_urls(additional_urls)
+        additional_success = len(successful_urls) == len(additional_urls)
+        
+        if successful_urls:
+            logger.info(f"Successfully scraped {len(successful_urls)} additional URLs")
+        if len(successful_urls) < len(additional_urls):
+            logger.warning(f"Failed to scrape {len(additional_urls) - len(successful_urls)} URLs")
+    
+    if huggingface_success and website_success and additional_success:
         logger.info("All data extraction completed successfully")
         return True
     else:
         logger.warning("Some extraction tasks failed. Check the logs for details.")
         return False
-
 if __name__ == "__main__":
     extract_all_data()
