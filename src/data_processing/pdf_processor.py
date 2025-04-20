@@ -16,7 +16,7 @@ import re
 from PyPDF2 import PdfReader
 import fitz  # PyMuPDF
 
-# Configure logging
+
 logging.basicConfig(level=logging.INFO, 
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -41,17 +41,17 @@ def extract_text_with_pymupdf(file_path: str) -> List[Dict[str, str]]:
     for page_num in range(total_pages):
         page = doc.load_page(page_num)
         
-        # Try to extract with blocks to maintain better layout
+        
         try:
             blocks = page.get_text("blocks")
             if blocks:
-                # Join blocks with newlines to maintain some structure
+               
                 text = "\n\n".join([b[4] for b in blocks])
             else:
-                # Fall back to simple text if blocks fail
+              
                 text = page.get_text()
         except Exception:
-            # Fall back to simple text extraction
+            
             text = page.get_text()
             
         if text.strip():  # Only add non-empty pages
@@ -107,10 +107,10 @@ def process_pdf_file(file_path: str) -> List[Dict[str, str]]:
     
     data_list = []
     try:
-        # Try PyMuPDF (fitz) first - generally better performance with layout
+        
         data_list = extract_text_with_pymupdf(file_path)
     except Exception as e:
-        # Log the error and try PyPDF2
+       
         logger.warning(f"PyMuPDF extraction failed for {file_path}: {e}")
         try:
             data_list = extract_text_with_pypdf2(file_path)
@@ -136,13 +136,13 @@ def process_pdf_directory(directory_path: str) -> str:
     """
     logger.info(f"Processing PDFs in directory: {directory_path}")
     
-    # Create output directory if it doesn't exist
+    
     os.makedirs("data/raw", exist_ok=True)
     
     all_data = []
     pdf_files_found = 0
     
-    # Collect all PDF files in the directory
+   
     for root, _, files in os.walk(directory_path):
         for file in files:
             if file.lower().endswith('.pdf'):
@@ -151,7 +151,7 @@ def process_pdf_directory(directory_path: str) -> str:
                 pdf_data = process_pdf_file(file_path)
                 all_data.extend(pdf_data)
     
-    # Save as JSON
+  
     output_path = "data/raw/pdf_extracts.json"
     with open(output_path, "w") as f:
         json.dump(all_data, f)
@@ -169,16 +169,16 @@ def clean_pdf_text(text: str) -> str:
     Returns:
         Cleaned text
     """
-    # Remove excessive whitespace
+    
     text = re.sub(r'\s+', ' ', text)
     
-    # Fix common PDF extraction issues
-    text = text.replace('- ', '')  # Common hyphenation issues
+ 
+    text = text.replace('- ', '')  
     
-    # Remove PDF artifacts like character codes
+    
     text = re.sub(r'\(cid:\d+\)', '', text)
     
-    # Remove header/footer patterns (customize based on your PDFs)
+   
     text = re.sub(r'(?:Page \d+ of \d+)|(?:\d+/\d+)', '', text)
     
     return text.strip()
@@ -194,14 +194,14 @@ def chunk_pdf_text(text: str, max_chunk_size: int = 1000) -> List[str]:
     Returns:
         List of text chunks
     """
-    # Try to split at paragraph boundaries first
+   
     paragraphs = text.split('\n\n')
     
     chunks = []
     current_chunk = ""
     
     for para in paragraphs:
-        # If paragraph itself exceeds max size, split it by sentences
+ 
         if len(para) > max_chunk_size:
             sentences = re.split(r'(?<=[.!?])\s+', para)
             for sentence in sentences:
@@ -211,16 +211,16 @@ def chunk_pdf_text(text: str, max_chunk_size: int = 1000) -> List[str]:
                     if current_chunk:
                         chunks.append(current_chunk.strip())
                     current_chunk = sentence + " "
-        # Otherwise add paragraph to current chunk if it fits
+ 
         elif len(current_chunk) + len(para) <= max_chunk_size:
             current_chunk += para + "\n\n"
-        # If it doesn't fit, start a new chunk
+
         else:
             if current_chunk:
                 chunks.append(current_chunk.strip())
             current_chunk = para + "\n\n"
     
-    # Add the last chunk if there's anything left
+
     if current_chunk:
         chunks.append(current_chunk.strip())
     

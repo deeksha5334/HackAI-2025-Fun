@@ -24,7 +24,7 @@ class EnhancedRAGSystem:
         # Default response
         default_response = "I'm here to support you through every step of your journey. While I aim to provide helpful information, remember that your healthcare team is the best source for medical advice specific to your situation. How else can I assist you today?"
         
-        # Check for keywords in the question
+        # Checking for keywords in the question
         for keyword, response in responses.items():
             if keyword.lower() in question.lower():
                 return response

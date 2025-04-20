@@ -24,7 +24,6 @@ AVAILABLE_DATASETS = {
         "description": "Collection of PDF documents",
         "processor": "extract_pdf"
     },
-    # Each paper needs a unique key
     "paper_clinical": {
         "source": "local",
         "id": "research_papers",
@@ -69,7 +68,7 @@ AVAILABLE_DATASETS = {
      }
 }
 
-# Document processors for different data types
+
 DOCUMENT_PROCESSORS = {
     "extract_standard_qa": {
         "description": "Extracts text from standard Q&A format datasets",

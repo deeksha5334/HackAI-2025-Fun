@@ -11,7 +11,7 @@ import logging
 from typing import List, Dict, Union, Optional
 from datasets import load_dataset
 
-# Configure logging
+
 logging.basicConfig(level=logging.INFO, 
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -35,8 +35,7 @@ def extract_oncqa_dataset() -> str:
         # Process each item in the dataset
         for i, item in enumerate(dataset):
             try:
-                # Extract fields based on actual dataset structure
-                # This part may need adjustment based on the actual structure
+               
                 if "question" in item and "response" in item:
                     # Standard question-response format
                     processed_item = {
@@ -54,18 +53,17 @@ def extract_oncqa_dataset() -> str:
                         "response": item["physician_response"]
                     }
                 elif "text" in item:
-                    # Already formatted as text
+                    
                     processed_item = {
                         "text": item["text"],
                         "source": f"oncqa_{i}"
                     }
                 else:
-                    # Unknown format, try to extract sensible data
-                    # Log all available keys for debugging
+                    
                     keys = list(item.keys())
                     logger.warning(f"Unknown format in OncQA dataset item {i}, available keys: {keys}")
                     
-                    # Try to construct a text field from whatever is available
+                   
                     text_parts = []
                     for key, value in item.items():
                         if isinstance(value, str) and value.strip():
@@ -77,7 +75,7 @@ def extract_oncqa_dataset() -> str:
                             "source": f"oncqa_{i}"
                         }
                     else:
-                        # Skip this item if no usable text
+                        
                         logger.warning(f"Skipping item {i} as no usable text was found")
                         continue
                 

@@ -20,7 +20,7 @@ export default function ChatPage() {
   const [chatHistory, setChatHistory] = useState<Message[]>([
     {
       role: "assistant",
-      content: "Hi love, I'm PinkPetal. I'm here to support you through your journey. How can I help you today? 💕",
+      content: "Hi love, I'm Care+. I'm here to support you through your journey. How can I help you today?",
       timestamp: new Date(),
     },
   ])
@@ -93,7 +93,7 @@ export default function ChatPage() {
           </Link>
           <div className="text-xl font-bold text-pink-600 flex items-center">
             <Heart className="h-5 w-5 mr-2 text-pink-500" />
-            PinkPetal Care+
+            Care+ Care+
           </div>
         </div>
       </header>
@@ -115,7 +115,7 @@ export default function ChatPage() {
                 className="relative"
               >
                 <Avatar className="h-12 w-12 border-2 border-white">
-                  <AvatarImage src="/placeholder.svg?height=48&width=48" alt="PinkPetal" />
+                  <AvatarImage src="/placeholder.svg?height=48&width=48" alt="Care+" />
                   <AvatarFallback className="bg-pink-200 text-pink-600">PP</AvatarFallback>
                 </Avatar>
                 <motion.div
@@ -134,7 +134,7 @@ export default function ChatPage() {
                 </motion.div>
               </motion.div>
               <div className="ml-3">
-                <h2 className="font-bold text-lg">PinkPetal Assistant</h2>
+                <h2 className="font-bold text-lg">Care+ Assistant</h2>
                 <p className="text-xs text-pink-100">Your compassionate support companion</p>
               </div>
             </div>
@@ -275,7 +275,7 @@ export default function ChatPage() {
               <div className="absolute -right-10 -top-10 w-32 h-32 rounded-full bg-pink-100 opacity-50" />
               <div className="absolute -left-10 -bottom-10 w-24 h-24 rounded-full bg-peach-200 opacity-50" />
 
-              <h2 className="text-2xl font-bold text-pink-600 mb-3 relative z-10">Welcome to PinkPetal Chat</h2>
+              <h2 className="text-2xl font-bold text-pink-600 mb-3 relative z-10">Welcome to Care+ Chat</h2>
               <p className="text-pink-700 mb-4 relative z-10">
                 Your personal support companion through every step of your breast cancer journey.
               </p>
@@ -303,7 +303,7 @@ export default function ChatPage() {
               transition={{ duration: 0.5, delay: 0.2 }}
               className="bg-gradient-to-br from-pink-100 to-peach-100 rounded-2xl p-6 shadow-lg"
             >
-              <h3 className="text-xl font-bold text-pink-600 mb-4">How PinkPetal Helps You</h3>
+              <h3 className="text-xl font-bold text-pink-600 mb-4">How Care+ Helps You</h3>
 
               <div className="space-y-4">
                 <div className="flex items-start">
@@ -363,7 +363,7 @@ export default function ChatPage() {
               </div>
 
               <blockquote className="italic text-pink-700 mb-3">
-                "PinkPetal has been my constant companion through the toughest days. Having someone to talk to anytime
+                "Care+ has been my constant companion through the toughest days. Having someone to talk to anytime
                 made all the difference in my journey."
               </blockquote>
 

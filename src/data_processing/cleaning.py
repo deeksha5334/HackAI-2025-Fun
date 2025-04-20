@@ -4,14 +4,14 @@ import json
 import logging
 from pathlib import Path
 
-# Configure logging
+
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
 
-# Update the clean_text function in cleaning.py
+
 def clean_text(text):
     """Basic text cleaning function."""
     # Remove multiple newlines
@@ -86,8 +86,7 @@ def process_website_content():
         # Clean the content
         cleaned_content = clean_text(content)
         
-        # Remove any navigation elements, footers, etc.
-        # This is a simplified approach - you might need more sophisticated cleaning
+        # Remove any navigation elements, footers
         lines = cleaned_content.split('\n')
         filtered_lines = []
         

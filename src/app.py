@@ -3,11 +3,9 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import os
 
-# Create the Flask application
 app = Flask(__name__)
 CORS(app)
 
-# Embedded simple RAG system for hackathon purposes
 class EnhancedRAGSystem:
     def __init__(self, api_key=None):
         self.api_key = api_key
@@ -39,18 +37,18 @@ class EnhancedRAGSystem:
                 
         return default_response
 
-# Initialize RAG system once at startup
 api_key = os.environ.get("GOOGLE_API_KEY")
 rag_system = EnhancedRAGSystem(api_key=api_key)
-
-@app.route('/api/chat', methods=['POST'])
+@app.route('/api/chat', methods=['POST', 'GET'])
 def chat():
+    if request.method == 'GET':
+        return jsonify({"message": "Chat API is working. Send a POST request with a message field to use the chat functionality."})
+    
     data = request.json
     message = data.get('message', '')
-    
     if not message:
         return jsonify({"message": "No message provided"}), 400
-        
+    
     response = rag_system.answer_question(message)
     return jsonify({"message": response})
 

@@ -10,7 +10,6 @@ import re
 import logging
 from typing import List, Dict, Union, Optional, Any
 
-# Configure logging
 logging.basicConfig(level=logging.INFO, 
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -28,7 +27,7 @@ def create_chunks(input_data: Union[str, List[Dict[str, Any]]], max_chunk_size: 
     """
     logger.info("Creating chunks from input data")
     
-    # Load data if input is a file path
+
     if isinstance(input_data, str):
         with open(input_data, "r") as f:
             data = json.load(f)
@@ -37,25 +36,25 @@ def create_chunks(input_data: Union[str, List[Dict[str, Any]]], max_chunk_size: 
     
     chunks = []
     
-    # Process each item
+
     for item in data:
         text = item.get("text", "")
         if not text:
             logger.warning(f"Skipping item with no text: {item}")
             continue
         
-        # Preserve metadata
+
         metadata = {k: v for k, v in item.items() if k != "text"}
         
-        # If text is smaller than max chunk size, keep as is
+  
         if len(text) <= max_chunk_size:
             chunk_item = {"text": text, **metadata}
             chunks.append(chunk_item)
         else:
-            # Split text into chunks
+            
             text_chunks = split_text(text, max_chunk_size)
             
-            # Create chunk items with metadata
+       
             for i, chunk in enumerate(text_chunks):
                 chunk_item = {
                     "text": chunk,
@@ -64,7 +63,7 @@ def create_chunks(input_data: Union[str, List[Dict[str, Any]]], max_chunk_size: 
                     **metadata
                 }
                 
-                # Update source to indicate chunk number
+               
                 if "source" in chunk_item:
                     chunk_item["source"] = f"{chunk_item['source']}_chunk{i+1}"
                 
@@ -72,7 +71,7 @@ def create_chunks(input_data: Union[str, List[Dict[str, Any]]], max_chunk_size: 
     
     logger.info(f"Created {len(chunks)} chunks from {len(data)} input items")
     
-    # Save chunks to file
+
     output_path = "data/processed/chunks.json"
     with open(output_path, "w") as f:
         json.dump(chunks, f)
@@ -91,7 +90,7 @@ def split_text(text: str, max_chunk_size: int) -> List[str]:
     Returns:
         List of text chunks
     """
-    # Try to split at paragraph boundaries first
+    
     paragraphs = re.split(r'\n\s*\n', text)
     
     chunks = []
@@ -102,22 +101,22 @@ def split_text(text: str, max_chunk_size: int) -> List[str]:
         if not para:
             continue
             
-        # If adding this paragraph would exceed max size
+
         if len(current_chunk) + len(para) + 2 > max_chunk_size:
-            # If current paragraph is itself too large, split by sentences
+
             if len(para) > max_chunk_size:
-                # Save current chunk if not empty
+                
                 if current_chunk:
                     chunks.append(current_chunk)
                     current_chunk = ""
                 
-                # Split paragraph by sentences
+                
                 sentences = re.split(r'(?<=[.!?])\s+', para)
                 
-                # Process sentences
+                
                 for sentence in sentences:
                     if len(sentence) > max_chunk_size:
-                        # If sentence is too large, split by character
+                        
                         for i in range(0, len(sentence), max_chunk_size):
                             chunks.append(sentence[i:i+max_chunk_size])
                     elif len(current_chunk) + len(sentence) + 1 <= max_chunk_size:
@@ -128,16 +127,16 @@ def split_text(text: str, max_chunk_size: int) -> List[str]:
                         chunks.append(current_chunk)
                         current_chunk = sentence
             else:
-                # Save current chunk and start a new one with this paragraph
+                
                 chunks.append(current_chunk)
                 current_chunk = para
         else:
-            # Add paragraph to current chunk
+            
             if current_chunk:
                 current_chunk += "\n\n"
             current_chunk += para
     
-    # Add the last chunk if there's anything left
+    
     if current_chunk:
         chunks.append(current_chunk)
     
@@ -157,13 +156,13 @@ def chunk_by_type(input_data: Union[str, List[Dict[str, Any]]], data_type: str =
     logger.info(f"Chunking data with type '{data_type}'")
     
     if data_type == "qa":
-        # Use QA-specific chunking
+        
         return chunk_qa_data(input_data)
     elif data_type == "pdf":
-        # Use PDF-specific chunking
+        
         return chunk_pdf_data(input_data)
     else:
-        # Use default chunking
+        
         return create_chunks(input_data)
 
 def chunk_qa_data(input_data: Union[str, List[Dict[str, Any]]]) -> List[Dict[str, Any]]:
@@ -178,7 +177,7 @@ def chunk_qa_data(input_data: Union[str, List[Dict[str, Any]]]) -> List[Dict[str
     """
     logger.info("Chunking QA data")
     
-    # Load data if input is a file path
+   
     if isinstance(input_data, str):
         with open(input_data, "r") as f:
             data = json.load(f)
@@ -187,20 +186,20 @@ def chunk_qa_data(input_data: Union[str, List[Dict[str, Any]]]) -> List[Dict[str
     
     chunks = []
     
-    # Process each item
+    
     for item in data:
-        # Extract Q&A pairs
+        
         text = item.get("text", "")
         
-        # Look for Q&A patterns
+        
         if "Question:" in text and "Answer:" in text:
-            # Split by question
+            
             qa_parts = re.split(r'(Question:.*?)(?=Question:|$)', text, flags=re.DOTALL)
             
-            # Filter out empty parts
+            
             qa_parts = [part for part in qa_parts if part.strip()]
             
-            # Process each Q&A pair
+           
             for i, qa in enumerate(qa_parts):
                 chunks.append({
                     "text": qa.strip(),
@@ -209,7 +208,7 @@ def chunk_qa_data(input_data: Union[str, List[Dict[str, Any]]]) -> List[Dict[str
                     "total_qa": len(qa_parts)
                 })
         else:
-            # If no Q&A pattern found, use default chunking
+           
             chunks.extend(create_chunks([item]))
     
     logger.info(f"Created {len(chunks)} QA chunks from {len(data)} input items")
@@ -225,12 +224,12 @@ def chunk_pdf_data(input_data: Union[str, List[Dict[str, Any]]]) -> List[Dict[st
     Returns:
         List of dictionaries with chunked PDF data
     """
-    # Import PDF processor to avoid circular imports
+   
     from .pdf_processor import clean_pdf_text, chunk_pdf_text
     
     logger.info("Chunking PDF data")
     
-    # Load data if input is a file path
+    
     if isinstance(input_data, str):
         with open(input_data, "r") as f:
             data = json.load(f)
@@ -239,19 +238,19 @@ def chunk_pdf_data(input_data: Union[str, List[Dict[str, Any]]]) -> List[Dict[st
     
     chunks = []
     
-    # Process each item
+
     for item in data:
         text = item.get("text", "")
         if not text:
             continue
             
-        # Clean the text
+        
         cleaned_text = clean_pdf_text(text)
         
-        # Split into chunks
+        
         text_chunks = chunk_pdf_text(cleaned_text)
         
-        # Create chunk items
+        
         for i, chunk in enumerate(text_chunks):
             chunk_item = {
                 "text": chunk,
@@ -267,7 +266,7 @@ def chunk_pdf_data(input_data: Union[str, List[Dict[str, Any]]]) -> List[Dict[st
     return chunks
 
 if __name__ == "__main__":
-    # Test chunking
+    
     import sys
     if len(sys.argv) > 1:
         input_file = sys.argv[1]

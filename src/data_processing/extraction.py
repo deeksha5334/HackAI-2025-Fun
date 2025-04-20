@@ -6,7 +6,7 @@ from datasets import load_dataset
 import json
 import logging
 
-# Configure logging
+
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
@@ -41,9 +41,9 @@ def download_huggingface_dataset(dataset_name="grassol/breast-cancer-QAs-llama",
         logger.info(f"Downloading dataset '{dataset_name}' from Hugging Face...")
         dataset = load_dataset(dataset_name, split="train")
         
-        # Process based on dataset structure
+        
         if dataset_name == "shanchen/OncQA":
-            # Special handling for OncQA dataset
+            
             data_list = []
             for i, item in enumerate(dataset):
                 if "question" in item and "response" in item:
@@ -54,11 +54,11 @@ def download_huggingface_dataset(dataset_name="grassol/breast-cancer-QAs-llama",
                         "response": item["response"]
                     })
         else:
-            # Default handling assuming a "text" field
+           
             data_list = [{"text": item["text"], "source": f"{output_name}_{i}"} 
                          for i, item in enumerate(dataset) if "text" in item]
         
-        # Save as JSON for easier processing
+        
         output_path = f"data/raw/{output_name}.json"
         with open(output_path, "w") as f:
             json.dump(data_list, f)
@@ -79,18 +79,18 @@ def scrape_breastcancernow_website():
         
         soup = BeautifulSoup(response.content, "html.parser")
         
-        # Extract main content (adjust selectors based on actual website structure)
+        
         main_content = soup.find("main") or soup.find("article") or soup.find("div", class_="content")
         
         if not main_content:
             logger.warning("Could not find main content on the page. Saving full HTML.")
             main_content = soup
         
-        # Save raw HTML
+        
         with open("data/raw/breastcancernow_content.html", "w", encoding="utf-8") as f:
             f.write(str(main_content))
         
-        # Extract text and save
+        
         text_content = main_content.get_text(separator="\n", strip=True)
         with open("data/raw/breastcancernow_content.txt", "w", encoding="utf-8") as f:
             f.write(text_content)
@@ -100,7 +100,7 @@ def scrape_breastcancernow_website():
     except Exception as e:
         logger.error(f"Error scraping Breast Cancer Now website: {str(e)}")
         return False
-# Add this function to src/data_processing/extraction.py
+
 
 def scrape_additional_urls(urls, output_prefix="custom"):
     """Scrape content from additional URLs and add to knowledge base.
@@ -122,21 +122,21 @@ def scrape_additional_urls(urls, output_prefix="custom"):
             
             soup = BeautifulSoup(response.content, "html.parser")
             
-            # Extract main content (adjust selectors based on website structure)
+            
             main_content = soup.find("main") or soup.find("article") or soup.find("div", class_="content")
             
             if not main_content:
                 logger.warning(f"Could not find main content on {url}. Saving full HTML.")
                 main_content = soup
             
-            # Generate a filename from the URL
+        
             filename = f"{output_prefix}_{i}"
             
-            # Save raw HTML
+            
             with open(f"data/raw/{filename}.html", "w", encoding="utf-8") as f:
                 f.write(str(main_content))
             
-            # Extract text and save
+            
             text_content = main_content.get_text(separator="\n", strip=True)
             with open(f"data/raw/{filename}.txt", "w", encoding="utf-8") as f:
                 f.write(text_content)
@@ -148,7 +148,7 @@ def scrape_additional_urls(urls, output_prefix="custom"):
     
     return successful_urls
 
-# Replace the extract_all_data function in src/data_processing/extraction.py
+
 
 def extract_all_data(additional_urls=None):
     """Run all extraction functions.
