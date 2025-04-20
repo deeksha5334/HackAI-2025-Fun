@@ -1,192 +1,276 @@
 # src/data_processing/chunking.py
+
+"""
+Module for chunking text data into smaller, manageable pieces for processing and indexing.
+"""
+
+import os
 import json
-import logging
-from pathlib import Path
 import re
+import logging
+from typing import List, Dict, Union, Optional, Any
 
 # Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
+logging.basicConfig(level=logging.INFO, 
+                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-def chunk_text(text, chunk_size=1000, overlap=200):
-    """Split text into overlapping chunks of approximately chunk_size characters."""
-    if not text:
-        return []
+def create_chunks(input_data: Union[str, List[Dict[str, Any]]], max_chunk_size: int = 1000) -> List[Dict[str, Any]]:
+    """
+    Create text chunks from input data.
     
-    # Use sentence boundaries for more natural chunks
-    sentences = re.split(r'(?<=[.!?])\s+', text)
+    Args:
+        input_data: Path to JSON file or list of dictionaries with text data
+        max_chunk_size: Maximum size of each chunk in characters
+        
+    Returns:
+        List of dictionaries with chunked text
+    """
+    logger.info("Creating chunks from input data")
+    
+    # Load data if input is a file path
+    if isinstance(input_data, str):
+        with open(input_data, "r") as f:
+            data = json.load(f)
+    else:
+        data = input_data
+    
     chunks = []
-    current_chunk = []
-    current_size = 0
     
-    for sentence in sentences:
-        sentence_len = len(sentence)
+    # Process each item
+    for item in data:
+        text = item.get("text", "")
+        if not text:
+            logger.warning(f"Skipping item with no text: {item}")
+            continue
         
-        # If adding this sentence would exceed chunk_size and we already have content,
-        # finalize the current chunk and start a new one
-        if current_size + sentence_len > chunk_size and current_chunk:
-            chunks.append(' '.join(current_chunk))
-            
-            # Keep some sentences for overlap
-            overlap_size = 0
-            overlap_chunk = []
-            
-            # Work backwards through current_chunk to create overlap
-            for s in reversed(current_chunk):
-                if overlap_size + len(s) <= overlap:
-                    overlap_chunk.insert(0, s)
-                    overlap_size += len(s) + 1  # +1 for space
-                else:
-                    break
-            
-            current_chunk = overlap_chunk
-            current_size = overlap_size
+        # Preserve metadata
+        metadata = {k: v for k, v in item.items() if k != "text"}
         
-        current_chunk.append(sentence)
-        current_size += sentence_len + 1  # +1 for space
+        # If text is smaller than max chunk size, keep as is
+        if len(text) <= max_chunk_size:
+            chunk_item = {"text": text, **metadata}
+            chunks.append(chunk_item)
+        else:
+            # Split text into chunks
+            text_chunks = split_text(text, max_chunk_size)
+            
+            # Create chunk items with metadata
+            for i, chunk in enumerate(text_chunks):
+                chunk_item = {
+                    "text": chunk,
+                    "chunk_num": i + 1,
+                    "total_chunks": len(text_chunks),
+                    **metadata
+                }
+                
+                # Update source to indicate chunk number
+                if "source" in chunk_item:
+                    chunk_item["source"] = f"{chunk_item['source']}_chunk{i+1}"
+                
+                chunks.append(chunk_item)
     
-    # Add the last chunk if it's not empty
+    logger.info(f"Created {len(chunks)} chunks from {len(data)} input items")
+    
+    # Save chunks to file
+    output_path = "data/processed/chunks.json"
+    with open(output_path, "w") as f:
+        json.dump(chunks, f)
+    
+    logger.info(f"Saved chunks to {output_path}")
+    return chunks
+
+def split_text(text: str, max_chunk_size: int) -> List[str]:
+    """
+    Split text into chunks of maximum size.
+    
+    Args:
+        text: Text to split
+        max_chunk_size: Maximum size of each chunk in characters
+        
+    Returns:
+        List of text chunks
+    """
+    # Try to split at paragraph boundaries first
+    paragraphs = re.split(r'\n\s*\n', text)
+    
+    chunks = []
+    current_chunk = ""
+    
+    for para in paragraphs:
+        para = para.strip()
+        if not para:
+            continue
+            
+        # If adding this paragraph would exceed max size
+        if len(current_chunk) + len(para) + 2 > max_chunk_size:
+            # If current paragraph is itself too large, split by sentences
+            if len(para) > max_chunk_size:
+                # Save current chunk if not empty
+                if current_chunk:
+                    chunks.append(current_chunk)
+                    current_chunk = ""
+                
+                # Split paragraph by sentences
+                sentences = re.split(r'(?<=[.!?])\s+', para)
+                
+                # Process sentences
+                for sentence in sentences:
+                    if len(sentence) > max_chunk_size:
+                        # If sentence is too large, split by character
+                        for i in range(0, len(sentence), max_chunk_size):
+                            chunks.append(sentence[i:i+max_chunk_size])
+                    elif len(current_chunk) + len(sentence) + 1 <= max_chunk_size:
+                        if current_chunk:
+                            current_chunk += " "
+                        current_chunk += sentence
+                    else:
+                        chunks.append(current_chunk)
+                        current_chunk = sentence
+            else:
+                # Save current chunk and start a new one with this paragraph
+                chunks.append(current_chunk)
+                current_chunk = para
+        else:
+            # Add paragraph to current chunk
+            if current_chunk:
+                current_chunk += "\n\n"
+            current_chunk += para
+    
+    # Add the last chunk if there's anything left
     if current_chunk:
-        chunks.append(' '.join(current_chunk))
+        chunks.append(current_chunk)
     
     return chunks
 
-def chunk_huggingface_data():
-    """Process Hugging Face data (already in appropriate chunks)."""
-    try:
-        file_path = "data/processed/huggingface_data.json"
-        
-        if not Path(file_path).exists():
-            logger.error(f"File not found: {file_path}")
-            return False
-        
-        logger.info(f"Processing Hugging Face data from {file_path}")
-        
-        with open(file_path, "r") as f:
-            data = json.load(f)
-        
-        # For Hugging Face data, each Q&A pair is already a good chunk size
-        # Just save with proper metadata
-        chunked_data = []
-        
-        for i, item in enumerate(data):
-            chunked_data.append({
-                "chunk_id": f"hf_{i}",
-                "content": item["content"],
-                "source": item["source"],
-                "metadata": {
-                    "source_type": "huggingface_dataset",
-                    "index": i
-                }
-            })
-        
-        # Save chunked data
-        with open("data/processed/chunked_huggingface_data.json", "w") as f:
-            json.dump(chunked_data, f, indent=2)
-        
-        logger.info(f"Successfully chunked Hugging Face data into {len(chunked_data)} chunks")
-        return True
-    except Exception as e:
-        logger.error(f"Error chunking Hugging Face data: {str(e)}")
-        return False
-
-def chunk_website_content():
-    """Chunk the website content into smaller pieces."""
-    try:
-        file_path = "data/processed/website_content.txt"
-        
-        if not Path(file_path).exists():
-            logger.error(f"File not found: {file_path}")
-            return False
-        
-        logger.info(f"Chunking website content from {file_path}")
-        
-        with open(file_path, "r", encoding="utf-8") as f:
-            content = f.read()
-        
-        # Split into sections first by headers if possible
-        sections = re.split(r'\n(?=[A-Z][^a-z]*:)', content)
-        
-        chunked_data = []
-        chunk_id = 0
-        
-        for section in sections:
-            # Further chunk each section
-            chunks = chunk_text(section, chunk_size=1000, overlap=200)
-            
-            for chunk in chunks:
-                chunk_id += 1
-                chunked_data.append({
-                    "chunk_id": f"web_{chunk_id}",
-                    "content": chunk,
-                    "source": "breastcancernow_website",
-                    "metadata": {
-                        "source_type": "website",
-                        "index": chunk_id
-                    }
-                })
-        
-        # Save chunked data
-        with open("data/processed/chunked_website_data.json", "w") as f:
-            json.dump(chunked_data, f, indent=2)
-        
-        logger.info(f"Successfully chunked website content into {len(chunked_data)} chunks")
-        return True
-    except Exception as e:
-        logger.error(f"Error chunking website content: {str(e)}")
-        return False
-
-def combine_all_chunks():
-    """Combine all chunked data into a single file."""
-    try:
-        logger.info("Combining all chunked data")
-        
-        all_chunks = []
-        
-        # Load Hugging Face chunks
-        hf_path = "data/processed/chunked_huggingface_data.json"
-        if Path(hf_path).exists():
-            with open(hf_path, "r") as f:
-                hf_chunks = json.load(f)
-                all_chunks.extend(hf_chunks)
-        
-        # Load website chunks
-        web_path = "data/processed/chunked_website_data.json"
-        if Path(web_path).exists():
-            with open(web_path, "r") as f:
-                web_chunks = json.load(f)
-                all_chunks.extend(web_chunks)
-        
-        # Save combined data
-        with open("data/processed/all_chunks.json", "w") as f:
-            json.dump(all_chunks, f, indent=2)
-        
-        logger.info(f"Successfully combined all chunks. Total: {len(all_chunks)}")
-        return True
-    except Exception as e:
-        logger.error(f"Error combining chunks: {str(e)}")
-        return False
-
-def chunk_all_data():
-    """Run all chunking functions."""
-    huggingface_success = chunk_huggingface_data()
-    website_success = chunk_website_content()
+def chunk_by_type(input_data: Union[str, List[Dict[str, Any]]], data_type: str = "default") -> List[Dict[str, Any]]:
+    """
+    Chunk data using type-specific chunking methods.
     
-    if huggingface_success or website_success:
-        combine_success = combine_all_chunks()
+    Args:
+        input_data: Path to JSON file or list of dictionaries with text data
+        data_type: Type of data to chunk (default, qa, pdf, etc.)
         
-        if combine_success:
-            logger.info("All data chunking and combining completed successfully")
-            return True
-        else:
-            logger.warning("Failed to combine chunks")
-            return False
+    Returns:
+        List of dictionaries with chunked text
+    """
+    logger.info(f"Chunking data with type '{data_type}'")
+    
+    if data_type == "qa":
+        # Use QA-specific chunking
+        return chunk_qa_data(input_data)
+    elif data_type == "pdf":
+        # Use PDF-specific chunking
+        return chunk_pdf_data(input_data)
     else:
-        logger.warning("All chunking tasks failed. Check the logs for details.")
-        return False
+        # Use default chunking
+        return create_chunks(input_data)
+
+def chunk_qa_data(input_data: Union[str, List[Dict[str, Any]]]) -> List[Dict[str, Any]]:
+    """
+    Chunk question-answer data, keeping questions and answers together.
+    
+    Args:
+        input_data: Path to JSON file or list of dictionaries with QA data
+        
+    Returns:
+        List of dictionaries with chunked QA data
+    """
+    logger.info("Chunking QA data")
+    
+    # Load data if input is a file path
+    if isinstance(input_data, str):
+        with open(input_data, "r") as f:
+            data = json.load(f)
+    else:
+        data = input_data
+    
+    chunks = []
+    
+    # Process each item
+    for item in data:
+        # Extract Q&A pairs
+        text = item.get("text", "")
+        
+        # Look for Q&A patterns
+        if "Question:" in text and "Answer:" in text:
+            # Split by question
+            qa_parts = re.split(r'(Question:.*?)(?=Question:|$)', text, flags=re.DOTALL)
+            
+            # Filter out empty parts
+            qa_parts = [part for part in qa_parts if part.strip()]
+            
+            # Process each Q&A pair
+            for i, qa in enumerate(qa_parts):
+                chunks.append({
+                    "text": qa.strip(),
+                    "source": f"{item.get('source', 'qa')}_pair{i+1}",
+                    "qa_num": i + 1,
+                    "total_qa": len(qa_parts)
+                })
+        else:
+            # If no Q&A pattern found, use default chunking
+            chunks.extend(create_chunks([item]))
+    
+    logger.info(f"Created {len(chunks)} QA chunks from {len(data)} input items")
+    return chunks
+
+def chunk_pdf_data(input_data: Union[str, List[Dict[str, Any]]]) -> List[Dict[str, Any]]:
+    """
+    Chunk PDF data, trying to respect document structure.
+    
+    Args:
+        input_data: Path to JSON file or list of dictionaries with PDF data
+        
+    Returns:
+        List of dictionaries with chunked PDF data
+    """
+    # Import PDF processor to avoid circular imports
+    from .pdf_processor import clean_pdf_text, chunk_pdf_text
+    
+    logger.info("Chunking PDF data")
+    
+    # Load data if input is a file path
+    if isinstance(input_data, str):
+        with open(input_data, "r") as f:
+            data = json.load(f)
+    else:
+        data = input_data
+    
+    chunks = []
+    
+    # Process each item
+    for item in data:
+        text = item.get("text", "")
+        if not text:
+            continue
+            
+        # Clean the text
+        cleaned_text = clean_pdf_text(text)
+        
+        # Split into chunks
+        text_chunks = chunk_pdf_text(cleaned_text)
+        
+        # Create chunk items
+        for i, chunk in enumerate(text_chunks):
+            chunk_item = {
+                "text": chunk,
+                "source": f"{item.get('source', 'pdf')}_chunk{i+1}",
+                "page_num": item.get("page_num"),
+                "total_pages": item.get("total_pages"),
+                "chunk_num": i + 1,
+                "total_chunks": len(text_chunks)
+            }
+            chunks.append(chunk_item)
+    
+    logger.info(f"Created {len(chunks)} PDF chunks from {len(data)} input items")
+    return chunks
 
 if __name__ == "__main__":
-    chunk_all_data()
+    # Test chunking
+    import sys
+    if len(sys.argv) > 1:
+        input_file = sys.argv[1]
+        create_chunks(input_file)
+    else:
+        print("Usage: python chunking.py <input_file>")

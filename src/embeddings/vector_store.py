@@ -1,214 +1,187 @@
 # src/embeddings/vector_store.py
+
+import os
 import json
 import logging
-from pathlib import Path
-import os
 import numpy as np
-import faiss
-from sentence_transformers import SentenceTransformer
+from typing import List, Dict, Any
 
 # Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
+logging.basicConfig(level=logging.INFO, 
+                   format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
+# Try to import sentence-transformer for embeddings
+try:
+    from sentence_transformers import SentenceTransformer
+    HAVE_SENTENCE_TRANSFORMERS = True
+except ImportError:
+    logger.warning("sentence-transformers package not found. Please install with: pip install sentence-transformers")
+    HAVE_SENTENCE_TRANSFORMERS = False
+
 class VectorStore:
-    def __init__(self, model_name="all-MiniLM-L6-v2"):
-        """Initialize the vector store with a free SentenceTransformer model."""
+    """Class for managing vector embeddings of text chunks."""
+    
+    def __init__(self, model_name: str = "all-MiniLM-L6-v2"):
+        """Initialize the vector store."""
         self.model_name = model_name
-        self.model = None
-        self.faiss_index = None
-        self.documents = []
+        self.vector_store_dir = "data/vector_store"
+        self.processed_dir = "data/processed"
+        self.vectors = {}  # Dictionary to store loaded vectors
         
-        # Directory for saving the vector store
-        self.save_dir = "data/vector_store"
-        os.makedirs(self.save_dir, exist_ok=True)
-    
-    def load_model(self):
-        """Load the embedding model."""
-        try:
-            logger.info(f"Loading embedding model: {self.model_name}")
-            self.model = SentenceTransformer(self.model_name)
-            logger.info("Embedding model loaded successfully")
-            return True
-        except Exception as e:
-            logger.error(f"Error loading embedding model: {str(e)}")
-            return False
-    
-    def load_documents(self, file_path="data/processed/all_chunks.json"):
-        """Load documents from the processed chunks file."""
-        try:
-            logger.info(f"Loading documents from {file_path}")
-            
-            if not Path(file_path).exists():
-                logger.error(f"File not found: {file_path}")
-                return False
-            
-            with open(file_path, "r") as f:
-                self.documents = json.load(f)
-            
-            logger.info(f"Loaded {len(self.documents)} documents")
-            return True
-        except Exception as e:
-            logger.error(f"Error loading documents: {str(e)}")
-            return False
-    
-    def create_embeddings(self):
-        """Create embeddings for all documents using SentenceTransformer."""
-        if not self.model:
-            success = self.load_model()
-            if not success:
-                return False
+        # Ensure directories exist
+        os.makedirs(self.vector_store_dir, exist_ok=True)
         
-        if not self.documents:
-            success = self.load_documents()
-            if not success:
-                return False
-        
-        try:
-            logger.info("Creating embeddings for documents")
-            
-            # Extract text content from documents
-            texts = [doc["content"] for doc in self.documents]
-            
-            # Generate embeddings
-            embeddings = self.model.encode(texts, show_progress_bar=True)
-            
-            # Save embeddings
-            embeddings_file = os.path.join(self.save_dir, "embeddings.npy")
-            np.save(embeddings_file, embeddings)
-            
-            # Save documents with their IDs
-            documents_file = os.path.join(self.save_dir, "documents.json")
-            with open(documents_file, "w") as f:
-                json.dump(self.documents, f, indent=2)
-            
-            logger.info(f"Created and saved embeddings for {len(texts)} documents")
-            
-            # Create FAISS index
-            self.create_faiss_index(embeddings)
-            
-            return True
-        except Exception as e:
-            logger.error(f"Error creating embeddings: {str(e)}")
-            return False
-    
-    def create_faiss_index(self, embeddings):
-        """Create a FAISS index from the embeddings."""
-        try:
-            logger.info("Creating FAISS index")
-            
-            # Get dimensionality of embeddings
-            dimension = embeddings.shape[1]
-            
-            # Create FAISS index
-            self.faiss_index = faiss.IndexFlatL2(dimension)
-            self.faiss_index.add(embeddings)
-            
-            # Save FAISS index
-            index_file = os.path.join(self.save_dir, "faiss_index.bin")
-            faiss.write_index(self.faiss_index, index_file)
-            
-            logger.info("FAISS index created and saved successfully")
-            return True
-        except Exception as e:
-            logger.error(f"Error creating FAISS index: {str(e)}")
-            return False
+        # Load the model if sentence-transformers is available
+        if HAVE_SENTENCE_TRANSFORMERS:
+            logger.info(f"Loading embedding model: {model_name}")
+            self.model = SentenceTransformer(model_name)
+        else:
+            self.model = None
+            logger.warning("No embedding model available. Vector store will not work properly.")
     
     def load_vector_store(self):
-        """Load the vector store from files."""
-        try:
-            logger.info("Loading vector store from files")
-            
-            # Load embedding model
-            success = self.load_model()
-            if not success:
-                return False
-            
-            # Load documents
-            documents_file = os.path.join(self.save_dir, "documents.json")
-            if not Path(documents_file).exists():
-                logger.error(f"Documents file not found: {documents_file}")
-                return False
-            
-            with open(documents_file, "r") as f:
-                self.documents = json.load(f)
-            
-            # Load FAISS index
-            index_file = os.path.join(self.save_dir, "faiss_index.bin")
-            if not Path(index_file).exists():
-                logger.error(f"FAISS index file not found: {index_file}")
-                return False
-            
-            self.faiss_index = faiss.read_index(index_file)
-            
-            logger.info(f"Vector store loaded successfully with {len(self.documents)} documents")
-            return True
-        except Exception as e:
-            logger.error(f"Error loading vector store: {str(e)}")
-            return False
+        """Load all available vector data."""
+        # First check if we have vector files in the vector store directory
+        vector_files = [f for f in os.listdir(self.vector_store_dir) if f.endswith("_vectors.json")]
+        
+        if vector_files:
+            # Load from vector files
+            for file in vector_files:
+                dataset_name = file.replace("_vectors.json", "")
+                self.vectors[dataset_name] = self.load_vectors(dataset_name)
+                logger.info(f"Loaded vectors for {dataset_name} with {len(self.vectors[dataset_name])} items")
+        else:
+            # If no vector files, try to load from all_chunks.json
+            all_chunks_path = os.path.join(self.processed_dir, "all_chunks.json")
+            if os.path.exists(all_chunks_path):
+                logger.info(f"Loading chunks from {all_chunks_path}")
+                with open(all_chunks_path, "r") as f:
+                    chunks = json.load(f)
+                    
+                # Process the chunks based on format (list or dict)
+                if isinstance(chunks, list):
+                    # Create embeddings for the list of chunks
+                    texts = [chunk.get("text", "") for chunk in chunks if "text" in chunk]
+                    if not texts:
+                        # If no text field, try content field 
+                        texts = [chunk.get("content", "") for chunk in chunks if "content" in chunk]
+                    
+                    if texts:
+                        embeddings = self.create_embeddings(texts)
+                        
+                        # Add embeddings to chunks
+                        for i, chunk in enumerate(chunks):
+                            if i < len(embeddings):
+                                chunk["embedding"] = embeddings[i].tolist() if isinstance(embeddings, np.ndarray) else None
+                        
+                        self.vectors["default"] = chunks
+                        logger.info(f"Created and loaded embeddings for {len(texts)} chunks")
+                elif isinstance(chunks, dict):
+                    # Handle dictionary format
+                    for dataset_name, dataset_info in chunks.items():
+                        if dataset_name != "_chunks" and isinstance(dataset_info, dict):
+                            # Skip metadata entries
+                            continue
+                            
+                        # Process chunks in this dataset
+                        dataset_chunks = chunks.get("_chunks", {}).get(dataset_name, [])
+                        if dataset_chunks:
+                            texts = [chunk.get("text", "") for chunk in dataset_chunks if "text" in chunk]
+                            if texts:
+                                embeddings = self.create_embeddings(texts)
+                                
+                                # Add embeddings to chunks
+                                for i, chunk in enumerate(dataset_chunks):
+                                    if i < len(embeddings):
+                                        chunk["embedding"] = embeddings[i].tolist() if isinstance(embeddings, np.ndarray) else None
+                                
+                                self.vectors[dataset_name] = dataset_chunks
+                                logger.info(f"Created and loaded embeddings for {len(texts)} chunks in {dataset_name}")
+            else:
+                logger.warning("No vectors or chunks found. Search will not work properly.")
     
-    def search(self, query, k=5):
-        """Search for the top k most similar documents to the query."""
-        if not self.model or not self.faiss_index:
-            success = self.load_vector_store()
-            if not success:
-                return []
+    def create_embeddings(self, texts: List[str]) -> np.ndarray:
+        """Create embeddings for a list of texts."""
+        if not self.model:
+            logger.error("No embedding model available.")
+            # Return dummy embeddings for testing
+            return np.zeros((len(texts), 384), dtype=np.float32)
         
-        try:
-            logger.info(f"Searching for: {query}")
-            
-            # Generate embedding for the query
-            query_embedding = self.model.encode([query])[0].reshape(1, -1)
-            
-            # Search FAISS index
-            distances, indices = self.faiss_index.search(query_embedding, k)
-            
-            # Get the corresponding documents
-            results = []
-            for i, idx in enumerate(indices[0]):
-                if idx < len(self.documents):
-                    doc = self.documents[idx]
-                    results.append({
-                        "content": doc["content"],
-                        "source": doc["source"],
-                        "metadata": doc["metadata"],
-                        "score": float(distances[0][i])
-                    })
-            
-            logger.info(f"Found {len(results)} results")
-            return results
-        except Exception as e:
-            logger.error(f"Error searching vector store: {str(e)}")
+        logger.info(f"Creating embeddings for {len(texts)} texts")
+        return self.model.encode(texts)
+    
+    def load_vectors(self, dataset_name: str) -> List[Dict[str, Any]]:
+        """Load vector embeddings for a dataset."""
+        vector_path = os.path.join(self.vector_store_dir, f"{dataset_name}_vectors.json")
+        
+        if not os.path.exists(vector_path):
+            logger.error(f"Vector store not found for dataset: {dataset_name}")
             return []
-
-def process_and_index_data():
-    """Main function to process and index all data."""
-    try:
-        logger.info("Starting data processing and indexing")
         
-        # Create vector store
-        vector_store = VectorStore()
+        logger.info(f"Loading vectors from {vector_path}")
         
-        # Load documents
-        success = vector_store.load_documents()
-        if not success:
-            logger.error("Failed to load documents")
-            return False
+        with open(vector_path, "r") as f:
+            vector_data = json.load(f)
         
-        # Create embeddings and index
-        success = vector_store.create_embeddings()
-        if not success:
-            logger.error("Failed to create embeddings")
-            return False
+        # Convert embedding lists back to numpy arrays
+        for item in vector_data:
+            if item.get("embedding"):
+                item["embedding"] = np.array(item["embedding"], dtype=np.float32)
         
-        logger.info("Data processing and indexing completed successfully")
-        return True
-    except Exception as e:
-        logger.error(f"Error in data processing and indexing: {str(e)}")
-        return False
-
-if __name__ == "__main__":
-    process_and_index_data()
+        logger.info(f"Loaded {len(vector_data)} vectors")
+        return vector_data
+    
+    def search(self, query: str, k: int = 3) -> List[Dict[str, Any]]:
+        """Search for most similar chunks to a query."""
+        if not self.model:
+            logger.error("No embedding model available for search.")
+            return []
+        
+        logger.info(f"Searching for: {query}")
+        
+        # Create query embedding
+        query_embedding = self.model.encode(query)
+        
+        # Search across all datasets
+        all_results = []
+        
+        for dataset_name, vectors in self.vectors.items():
+            # Skip empty datasets
+            if not vectors:
+                continue
+            
+            # Calculate similarities
+            for item in vectors:
+                content = item.get("text", "") or item.get("content", "")
+                if not content:
+                    continue
+                    
+                embedding = item.get("embedding")
+                if embedding is None:
+                    # If no embedding, create one
+                    embedding = self.model.encode(content)
+                    item["embedding"] = embedding
+                
+                if isinstance(embedding, list):
+                    embedding = np.array(embedding, dtype=np.float32)
+                
+                # Calculate cosine similarity
+                similarity = np.dot(query_embedding, embedding) / (
+                    np.linalg.norm(query_embedding) * np.linalg.norm(embedding)
+                )
+                
+                result = {
+                    "content": content,
+                    "metadata": {k: v for k, v in item.items() if k not in ["text", "content", "embedding"]},
+                    "source": item.get("source", dataset_name),
+                    "source_type": item.get("source_type", "processed data"),
+                    "score": 1.0 - similarity  # Convert to distance (lower is better)
+                }
+                all_results.append(result)
+        
+        # Sort all results by score (lower is better)
+        all_results.sort(key=lambda x: x["score"])
+        
+        # Return top k results
+        return all_results[:k]

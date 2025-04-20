@@ -23,24 +23,51 @@ def create_directories():
         os.makedirs(dir_path, exist_ok=True)
         logger.info(f"Created directory: {dir_path}")
 
-def download_huggingface_dataset():
-    """Download the breast cancer QA dataset from Hugging Face."""
-    try:
-        logger.info("Downloading dataset from Hugging Face...")
-        dataset = load_dataset("grasool/breast-cancer-QAs-llama")
+def download_huggingface_dataset(dataset_name="grassol/breast-cancer-QAs-llama", output_name=None):
+    """
+    Download and process a dataset from Hugging Face.
+    
+    Args:
+        dataset_name: Name/path of the dataset on Hugging Face
+        output_name: Name for the output file (defaults to dataset name)
         
-        # Convert to a serializable format (list of dictionaries)
-        data_list = [{"text": item["text"]} for item in dataset["train"]]
+    Returns:
+        Path to the saved JSON file or None if failed
+    """
+    if output_name is None:
+        output_name = dataset_name.split('/')[-1].replace('-', '_').lower()
+    
+    try:
+        logger.info(f"Downloading dataset '{dataset_name}' from Hugging Face...")
+        dataset = load_dataset(dataset_name, split="train")
+        
+        # Process based on dataset structure
+        if dataset_name == "shanchen/OncQA":
+            # Special handling for OncQA dataset
+            data_list = []
+            for i, item in enumerate(dataset):
+                if "question" in item and "response" in item:
+                    data_list.append({
+                        "text": f"Question: {item['question']}\nAnswer: {item['response']}",
+                        "source": f"{output_name}_{i}",
+                        "question": item["question"],
+                        "response": item["response"]
+                    })
+        else:
+            # Default handling assuming a "text" field
+            data_list = [{"text": item["text"], "source": f"{output_name}_{i}"} 
+                         for i, item in enumerate(dataset) if "text" in item]
         
         # Save as JSON for easier processing
-        with open("data/raw/breast_cancer_qa.json", "w") as f:
+        output_path = f"data/raw/{output_name}.json"
+        with open(output_path, "w") as f:
             json.dump(data_list, f)
-        
-        logger.info("Successfully downloaded and saved Hugging Face dataset")
-        return True
+            
+        logger.info(f"Successfully downloaded and saved {len(data_list)} items from {dataset_name}")
+        return output_path
     except Exception as e:
-        logger.error(f"Error downloading Hugging Face dataset: {str(e)}")
-        return False
+        logger.error(f"Error downloading Hugging Face dataset: {e}")
+        return None
 
 def scrape_breastcancernow_website():
     """Scrape content from the Breast Cancer Now website."""
