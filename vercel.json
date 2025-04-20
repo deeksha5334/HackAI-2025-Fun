@@ -1,0 +1,12 @@
+{
+    "version": 2,
+    "builds": [
+      { "src": "src/app.py", "use": "@vercel/python" }
+    ],
+    "routes": [
+      { "src": "/api/(.*)", "dest": "src/app.py" }
+    ],
+    "env": {
+      "GOOGLE_API_KEY": "@google-api-key"
+    }
+  }
