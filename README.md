@@ -151,13 +151,21 @@ This project is licensed under the MIT License - see the LICENSE file for detail
   - [Breast Cancer Now](https://breastcancernow.org)
   - [Hugging Face Datasets](https://huggingface.co/datasets)
 - Research papers and resources on RAG systems
-[1] A. Ludwigson et al., “Characterizing informational needs and information seeking behavior of patients with breast cancer,” The American Journal of Surgery, vol. 227, pp. 100–105, Jan. 2024. doi:10.1016/j.amjsurg.2023.09.047 
+[1] A. Ludwigson et al., “Characterizing informational needs and information seeking behavior of patients with breast cancer,” The American Journal of Surgery, vol. 227, pp. 100–105, Jan. 2024. doi:10.1016/j.amjsurg.2023.09.047
+
 [2] E. Abi Nader et al., “Informational needs of women with breast cancer treated with chemotherapy,” Asian Pacific Journal of Cancer Prevention, vol. 17, no. 4, pp. 1797–1800, Jun. 2016. doi:10.7314/apjcp.2016.17.4.1797 
-[3] B. A. Vogel, J. Bengel, and A. W. Helmes, “Information and decision making: Patients’ needs and experiences in the course of breast cancer treatment,” Patient Education and Counseling, vol. 71, no. 1, pp. 79–85, Apr. 2008. doi:10.1016/j.pec.2007.11.023 
-[4] M. Rassouli et al., “Communication needs of patients with breast cancer: A qualitative study,” Indian Journal of Palliative Care, vol. 22, no. 4, p. 402, 2016. doi:10.4103/0973-1075.191763 
-[5] P. A. Parker, J. Aaron, and W. F. Baile, “Breast cancer: Unique communication challenges and strategies to address them,” The Breast Journal, vol. 15, no. 1, pp. 69–75, Jan. 2009. doi:10.1111/j.1524-4741.2008.00673.x 
-[6] L. J. Fallowfield, “Treatment decision-making in breast cancer: The patient–doctor relationship,” Breast Cancer Research and Treatment, vol. 112, no. S1, pp. 5–13, Jun. 2008. doi:10.1007/s10549-008-0077-3 
+
+[3] B. A. Vogel, J. Bengel, and A. W. Helmes, “Information and decision making: Patients’ needs and experiences in the course of breast cancer treatment,” Patient Education and Counseling, vol. 71, no. 1, pp. 79–85, Apr. 2008. doi:10.1016/j.pec.2007.11.023
+
+[4] M. Rassouli et al., “Communication needs of patients with breast cancer: A qualitative study,” Indian Journal of Palliative Care, vol. 22, no. 4, p. 402, 2016. doi:10.4103/0973-1075.191763
+
+[5] P. A. Parker, J. Aaron, and W. F. Baile, “Breast cancer: Unique communication challenges and strategies to address them,” The Breast Journal, vol. 15, no. 1, pp. 69–75, Jan. 2009. doi:10.1111/j.1524-4741.2008.00673.x
+
+[6] L. J. Fallowfield, “Treatment decision-making in breast cancer: The patient–doctor relationship,” Breast Cancer Research and Treatment, vol. 112, no. S1, pp. 5–13, Jun. 2008. doi:10.1007/s10549-008-0077-3
+
 [7] I. Ablett-Spence, “Information needs of newly diagnosed cancer patients,” European Journal of Cancer, vol. 35, Sep. 1999. doi:10.1016/s0959-8049(99)80495-x 
-[8] H. Lu et al., “Information needs of breast cancer patients: Theory-generating meta-synthesis,” Journal of Medical Internet Research, vol. 22, no. 7, Jul. 2020. doi:10.2196/17907 
+
+[8] H. Lu et al., “Information needs of breast cancer patients: Theory-generating meta-synthesis,” Journal of Medical Internet Research, vol. 22, no. 7, Jul. 2020. doi:10.2196/17907
+
 [9] O. C. E;, “Role of the nurse in patient education and engagement and its importance in Advanced breast cancer,” Seminars in oncology nursing, https://pubmed.ncbi.nlm.nih.gov/38087678/ (accessed Apr. 20, 2025). 
 - Open source libraries used in this project
