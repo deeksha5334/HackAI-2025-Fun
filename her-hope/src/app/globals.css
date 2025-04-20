@@ -47,17 +47,17 @@
     --input: 240 3.7% 15.9%;
     --ring: 346 84% 61%;
   }
-}
 
-@layer base {
   * {
     @apply border-border;
   }
+  
   body {
     @apply bg-background text-foreground;
   }
 }
 
+/* Gradient background */
 .gradient-background {
   background: linear-gradient(to bottom, #f5a8a8 0%, #ffcba4 50%, #fff9e0 100%);
   background-attachment: fixed;
